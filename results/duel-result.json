@@ -1,0 +1,83 @@
+{
+  "arch_preset": "toto2-4m",
+  "base_seed": 1,
+  "block": null,
+  "chain_toml": "/mnt/d/Exercise/cascade/chain.testnet.toml",
+  "challenger": "/mnt/d/Exercise/cascade/cascade-work/models/ckpt-r15703366466408532495-challenger-toto2-4m-u238",
+  "dethrone_state": "DETHRONE",
+  "eval_pool": "/mnt/d/Exercise/cascade/cascade-work/cascade-eval-pool/snapshots/2026-07-16",
+  "king": "/mnt/d/Exercise/cascade/cascade-work/models/local-heat-current",
+  "king_tenure_rounds": 0,
+  "n_windows": 228,
+  "num_samples": 40,
+  "params": {
+    "bootstrap_B": 10000,
+    "bootstrap_alpha": 0.05,
+    "dethrone_cp": 1,
+    "gift_gate_min_configs": 15,
+    "gift_gate_mode": "shadow",
+    "gift_gate_tolerance": 0.03,
+    "init_gate_mode": "off",
+    "init_gate_tolerance": 0.0,
+    "margin_increment_floor": 0.01,
+    "margin_mode": "level",
+    "margin_warmup_rounds": 8,
+    "min_clusters": 10,
+    "min_windows": 80,
+    "mv_score": false,
+    "win_margin_end": 0.005,
+    "win_margin_start": 0.02
+  },
+  "result": {
+    "baseline_geomean": null,
+    "boot_p50": 0.6661094039876829,
+    "boot_p95": 0.7324347588692299,
+    "chal_geomean": 0.18183945708982946,
+    "challenger_wins_round": true,
+    "gift_gate_passed": null,
+    "gift_lcb": null,
+    "inconclusive": false,
+    "init_floor_passed": null,
+    "king_geomean": 0.5458421287937463,
+    "lcb": 0.5798093985854609,
+    "margin": 0.02,
+    "margin_mode": "level",
+    "n_clusters": 50,
+    "n_windows": 228,
+    "per_domain_win_rate": {
+      "econ_fin": [
+        0.9393939393939394,
+        33
+      ],
+      "energy": [
+        1.0,
+        17
+      ],
+      "healthcare": [
+        0.9230769230769231,
+        13
+      ],
+      "nature": [
+        0.8837209302325582,
+        86
+      ],
+      "sales": [
+        0.9841269841269841,
+        63
+      ],
+      "transport": [
+        1.0,
+        1
+      ],
+      "web_cloudops": [
+        1.0,
+        15
+      ]
+    },
+    "per_horizon": null,
+    "wilcoxon_p": null,
+    "win_rate": 0.9385964912280702,
+    "wql_mode": "geomean"
+  },
+  "stage": "duel"
+}
