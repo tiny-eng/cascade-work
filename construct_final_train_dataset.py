@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -37,6 +38,8 @@ def _parser() -> argparse.ArgumentParser:
 						help="Approximate series-points per shard (default: 10,000,000).")
 	parser.add_argument("--overwrite", action="store_true",
 						help="Remove existing shard files and manifest before rebuilding.")
+	parser.add_argument("--progress", action="store_true",
+						help="Show dataset-generation progress and ETA.")
 	parser.add_argument("--in-process", action="store_true",
 						help="Run the generator in-process instead of cascade's sandbox.")
 	return parser
@@ -100,6 +103,8 @@ def construct_dataset(args: argparse.Namespace) -> dict[str, object]:
 	shard_paths: list[str] = []
 	n_series = 0
 	total_points = 0
+	started = time.monotonic()
+	last_progress = started
 	denomination = getattr(contract, "budget_denomination", "points")
 
 	def flush() -> None:
@@ -137,9 +142,29 @@ def construct_dataset(args: argparse.Namespace) -> dict[str, object]:
 			shard_points += points
 			total_points += points
 			n_series += 1
+			if args.progress and time.monotonic() - last_progress >= 1.0:
+				elapsed = max(0.001, time.monotonic() - started)
+				fraction = min(1.0, total_points / max(1, token_budget))
+				throughput = total_points / elapsed
+				remaining = max(0, token_budget - total_points)
+				eta = remaining / throughput if throughput > 0 else 0.0
+				width = 30
+				filled = int(width * fraction)
+				bar = "=" * filled + ">" + " " * max(0, width - filled - 1)
+				sys.stderr.write(
+					f"\rgenerating [{bar}] {fraction * 100:6.2f}% "
+					f"points={total_points:,}/{token_budget:,} "
+					f"series={n_series:,} rate={throughput:,.0f}/s "
+					f"ETA={eta / 60:.1f}m"
+				)
+				sys.stderr.flush()
+				last_progress = time.monotonic()
 			if shard_points >= args.shard_points:
 				flush()
 		flush()
+		if args.progress:
+			sys.stderr.write("\n")
+			sys.stderr.flush()
 		manifest = {
 			"format": 1,
 			"stage": "final",
