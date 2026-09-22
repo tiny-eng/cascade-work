@@ -36,6 +36,8 @@ def _parser() -> argparse.ArgumentParser:
 						help="Torch model dtype passed to Toto2Trainer (default: float32).")
 	parser.add_argument("--warm-start-dir", type=Path, default=None,
 						help="Downloaded checkpoint directory containing weights.safetensors.")
+	parser.add_argument("--progress", action="store_true",
+						help="Show token-budget progress while training.")
 	parser.add_argument("--allow-mismatch", action="store_true",
 						help="Allow manifest/config differences; not recommended for exact runs.")
 	parser.add_argument("--dry-run", action="store_true",
@@ -133,6 +135,32 @@ def _resolve_warm_start(path: Path | None) -> Path | None:
 	return path
 
 
+def _progress_logger(token_budget: int):
+	def log(record: dict) -> None:
+		if record.get("event") == "step":
+			fraction = min(1.0, max(0.0, float(record.get("tokens_frac", 0.0))))
+			width = 30
+			filled = int(width * fraction)
+			bar = "=" * filled + ">" + " " * max(0, width - filled - 1)
+			throughput = float(record.get("throughput_tokens_per_s", 0.0) or 0.0)
+			tokens = int(record.get("tokens", 0))
+			remaining = max(0, token_budget - tokens)
+			eta_seconds = remaining / throughput if throughput > 0 else 0.0
+			sys.stderr.write(
+				f"\rtraining [{bar}] {fraction * 100:6.2f}% "
+				f"tokens={tokens:,}/{token_budget:,} "
+				f"step={int(record.get('step', 0)):,} "
+				f"loss={float(record.get('loss', 0.0)):.5f} "
+				f"rate={throughput:,.0f}/s ETA={eta_seconds / 60:.1f}m"
+			)
+			sys.stderr.flush()
+		elif record.get("event") == "done":
+			sys.stderr.write("\n")
+			sys.stderr.flush()
+
+	return log
+
+
 def train(args: argparse.Namespace) -> dict[str, object]:
 	root = (args.repo_root or _repo_root()).resolve()
 	if str(root) not in sys.path:
@@ -168,6 +196,7 @@ def train(args: argparse.Namespace) -> dict[str, object]:
 		}
 
 	trainer = Toto2Trainer(device=args.device, dtype=args.dtype, deterministic=True)
+	logger = _progress_logger(contract.train_tokens) if args.progress else None
 	result = trainer.train(
 		_dataset_stream(dataset_dir, manifest),
 		contract,
@@ -175,6 +204,7 @@ def train(args: argparse.Namespace) -> dict[str, object]:
 		token_budget=contract.train_tokens,
 		out_dir=args.output_dir,
 		warm_start_dir=warm_start_dir,
+		logger=logger,
 	)
 	return {
 		"stage": manifest["stage"],
